@@ -20,6 +20,21 @@ limitations under the License.
 
 #include "common.h"
 
+void Fn7a950Hook::OnFunctionEntered() { 
+  //printf("Fn7a950Hook::OnFunctionEntered\n");
+  return;
+}
+
+void FortExitThHook::OnFunctionEntered() { 
+  printf("FortExitThHook::OnFunctionEntered\n");
+  return;
+}
+
+LiteCov::LiteCov()  {
+  RegisterHook(new Fn7a950Hook());
+  //RegisterHook(new FortExitThHook());
+}
+
 ModuleCovData::ModuleCovData() { ClearInstrumentationData(); }
 
 // does not clear collected coverage and ignore coverage

@@ -24,7 +24,26 @@ limitations under the License.
 #include "tinyinst.h"
 #include "instruction.h"
 
+#include "hook.h"
+
 #define COVERAGE_SIZE 0
+
+class Fn7a950Hook : public HookReplace {
+public:
+  Fn7a950Hook() : HookReplace("sacwpre.exe", 0x7a950, 1, CALLCONV_DEFAULT) {}
+protected:
+  void OnFunctionEntered() override;
+  //void WriteCodeBefore(ModuleInfo* module) override;
+};
+
+class FortExitThHook : public HookReplace {
+public:
+  FortExitThHook() : HookReplace("*", "for_stop_core_quiet", 6, CALLCONV_DEFAULT) {}
+protected:
+  void OnFunctionEntered() override;
+  //void WriteCodeBefore(ModuleInfo* module) override;
+};
+
 
 enum CovType {
   COVTYPE_BB,
@@ -74,6 +93,7 @@ public:
 
 class LiteCov : public TinyInst {
 public:
+  LiteCov();
   virtual void Init(int argc, char **argv) override;
 
   void GetCoverage(Coverage &coverage, bool clear_coverage);
