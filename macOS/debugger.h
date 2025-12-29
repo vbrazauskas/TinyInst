@@ -151,6 +151,7 @@ friend kern_return_t catch_mach_exception_raise_state_identity(
 
 public:
   virtual void Init(int argc, char **argv);
+  virtual void SetThreadToEnvVars(int ctx_thread_id = 0);
   DebuggerStatus Run(char *cmd, uint32_t timeout);
   DebuggerStatus Run(int argc, char **argv, uint32_t timeout);
   DebuggerStatus Kill();

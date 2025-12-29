@@ -2299,3 +2299,16 @@ void Debugger::Init(int argc, char **argv) {
   if(trace_syscalls) ptrace_continue_request = PTRACE_SYSCALL;
   else ptrace_continue_request = PTRACE_CONT;
 }
+
+void Debugger::SetThreadToEnvVars(int ctx_thread_id) {
+    const std::string placeholder = "##FUZZ_THREAD_ID##";
+    const std::string replacement = (ctx_thread_id == 0) ? "" : std::to_string(ctx_thread_id);
+
+    for (auto& entry : additional_env) {
+        size_t pos = entry.find(placeholder);
+        while (pos != std::string::npos) {
+            entry.replace(pos, placeholder.length(), replacement);
+            pos = entry.find(placeholder, pos + replacement.length()); // continue search
+        }
+    }
+}

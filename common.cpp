@@ -183,14 +183,17 @@ char *ArgvToCmd(int argc, char** argv) {
   int i;
   char* buf, *ret;
 
-  for (i = 0; i < argc; i++)
+  for (i = 0; i < argc; i++) {
+    if (strncmp(argv[i], "@@", 2) == 0) continue; // skip @@ arguments
     len += ArgvEscape(argv[i], NULL) + 1;
+  }
 
   if (!len) FATAL("Error creating command line");
 
   buf = ret = (char *)malloc(len);
 
   for (i = 0; i < argc; i++) {
+    if (strncmp(argv[i], "@@", 2) == 0) continue; // skip @@ arguments
     size_t l = ArgvEscape(argv[i], buf);
     buf += l;
     *(buf++) = ' ';

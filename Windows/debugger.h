@@ -60,6 +60,7 @@ class Debugger {
 public:
 
   virtual void Init(int argc, char **argv);
+  virtual void SetThreadToEnvVars(int ctx_thread_id = 0);
   DebuggerStatus Run(char *cmd, uint32_t timeout);
   DebuggerStatus Run(int argc, char **argv, uint32_t timeout);
   DebuggerStatus Kill();
@@ -193,6 +194,8 @@ private:
                             size_t size,
                             MemoryProtection protection);
 
+  std::vector<char> GetEnvp();
+
 protected:
 
   bool child_entrypoint_reached;
@@ -211,6 +214,7 @@ private:
   DebuggerStatus dbg_last_status;
 
   int wow64_target = 0;
+
 
 protected:
   bool target_function_defined;
@@ -247,6 +251,7 @@ private:
   bool have_thread_context;
   size_t allocation_granularity;
 
+  std::list<std::string> additional_env;
   bool force_dep;
 };
 

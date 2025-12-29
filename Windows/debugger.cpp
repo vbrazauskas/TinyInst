@@ -1708,13 +1708,15 @@ void Debugger::StartProcess(char *cmd) {
     }
   }
 
+  std::vector<char> custom_env = GetEnvp();
+
   if (!CreateProcessA(NULL,
                       cmd,
                       NULL,
                       NULL,
                       inherit_handles,
                       creation_flags,
-                      NULL,
+                      additional_env.empty() ? NULL : custom_env.data(),                      
                       NULL,
                       si_ptr,
                       &pi))
@@ -1842,13 +1844,37 @@ DebuggerStatus Debugger::Run(char *cmd, uint32_t timeout) {
 }
 
 DebuggerStatus Debugger::Run(int argc, char **argv, uint32_t timeout) {
-    char* cmd = NULL;
-    cmd = ArgvToCmd(argc, argv);
+    
+  // Process @@VARNAME= arguments
+  for (int i = 0; i < argc; ) {
+    
+    if (strncmp(argv[i], "@@", 2) == 0) {
+          char *eq = strchr(argv[i] + 2, '=');
 
-    DebuggerStatus ret_dbg_status = Run(cmd, timeout);
-    free(cmd);
+          if (eq) {
+            // Found @@VARNAME=...
+            std::string env_entry = argv[i] + 2; // skip @@
+            
+            // Only add if unique
+            if (std::find(additional_env.begin(), additional_env.end(), env_entry) == additional_env.end()) {
+              additional_env.push_back(env_entry);
+            }
 
-    return ret_dbg_status;
+            i++;
+            continue;
+          }
+    }
+
+      i++;
+  }
+
+  char* cmd = NULL;
+  cmd = ArgvToCmd(argc, argv);
+
+  DebuggerStatus ret_dbg_status = Run(cmd, timeout);
+  free(cmd);
+
+  return ret_dbg_status;
 }
 
 // continues after Run() or previous Continue()
@@ -1899,6 +1925,14 @@ void Debugger::Init(int argc, char **argv) {
   target_num_args = 0;
   calling_convention = CALLCONV_DEFAULT;
   target_address = NULL;
+
+  additional_env.clear();
+
+  std::list<char *> env_options;
+  GetOptionAll("-target_env", argc, argv, &env_options);
+  for (auto iter = env_options.begin(); iter != env_options.end(); iter++) {
+    additional_env.push_back(*iter);
+  }
 
   char *option;
 
@@ -1956,4 +1990,48 @@ void Debugger::Init(int argc, char **argv) {
   SYSTEM_INFO system_info;
   GetSystemInfo(&system_info);
   allocation_granularity = system_info.dwAllocationGranularity;
+}
+
+std::vector<char> Debugger::GetEnvp() {
+
+  std::vector<char> envBlock;
+  envBlock.clear();
+
+  LPCH lpEnv = GetEnvironmentStringsA();
+
+  if (!lpEnv) {
+    printf("GetEnvironmentStringsA failed (error %lu)\n", GetLastError());
+    return envBlock;
+  }
+
+  for (LPCH var = lpEnv; *var; var += strlen(var) + 1) {
+    size_t len = strlen(var);
+    envBlock.insert(envBlock.end(), var, var + len + 1);  // include null
+  }
+
+  FreeEnvironmentStringsA(lpEnv);
+
+  //addtional environment variables
+  for(auto iter = additional_env.begin(); iter != additional_env.end(); iter++) {
+    envBlock.insert(envBlock.end(), iter->begin(), iter->end());
+    envBlock.push_back('\0'); // Null-terminate the string
+  }
+
+  // Add final null terminator for the environment block
+  envBlock.push_back('\0');
+
+  return envBlock;
+}
+
+void Debugger::SetThreadToEnvVars(int ctx_thread_id) {
+    const std::string placeholder = "##FUZZ_THREAD_ID##";
+    const std::string replacement = (ctx_thread_id == 0) ? "" : std::to_string(ctx_thread_id);
+
+    for (auto& entry : additional_env) {
+        size_t pos = entry.find(placeholder);
+        while (pos != std::string::npos) {
+            entry.replace(pos, placeholder.length(), replacement);
+            pos = entry.find(placeholder, pos + replacement.length()); // continue search
+        }
+    }
 }

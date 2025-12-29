@@ -94,6 +94,7 @@ class Debugger {
 
 public:
   virtual void Init(int argc, char **argv);
+  virtual void SetThreadToEnvVars(int ctx_thread_id = 0);
 
   DebuggerStatus Run(int argc, char **argv, uint32_t timeout);
   DebuggerStatus Run(char *cmd, uint32_t timeout);
